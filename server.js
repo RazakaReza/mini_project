@@ -1,16 +1,15 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const db = require("./db.js"); // Menggunakan modul pg baru
+const db = require("db.js"); 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { authenticateToken, authorizeRole } = require("./middleware/auth.js");
+const { authenticateToken, authorizeRole } = require("./middleware/middleware.js");
 
 const app = express();
 const PORT = process.env.PORT || 3300;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// === MIDDLEWARE ===
 app.use(cors());
 app.use(express.json());
 
@@ -19,7 +18,6 @@ app.get("/status", (req, res) => {
   res.json({ ok: true, service: "film-api" });
 });
 
-// === AUTH ROUTES (Refactored for pg) ===
 app.post("/auth/register", async (req, res, next) => {
   const { username, password } = req.body;
   if (!username || !password || password.length < 6) {
@@ -72,30 +70,30 @@ app.post("/auth/register-admin", async (req, res, next) => {
   }
 });
 
-app.post("/auth/login", async (req, res, next) => {
-  const { username, password } = req.body;
-  try {
-    const sql = "SELECT * FROM users WHERE username = $1";
-    const result = await db.query(sql, [username.toLowerCase()]);
-    const user = result.rows[0];
-    if (!user) {
-      return res.status(401).json({ error: "Kredensial tidak valid" });
-    }
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ error: "Kredensial tidak valid" });
-    }
-    const payload = {
-      user: { id: user.id, username: user.username, role: user.role },
-    };
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
-    res.json({ message: "Login berhasil", token: token });
-  } catch (err) {
-    next(err);
-  }
-});
+// untuk login 
+// app.post("/auth/login", async (req, res, next) => {
+//   const { username, password } = req.body;
+//   try {
+//     const sql = "SELECT * FROM users WHERE username = $1";
+//     const result = await db.query(sql, [username.toLowerCase()]);
+//     const user = result.rows[0];
+//     if (!user) {
+//       return res.status(401).json({ error: "Kredensial tidak valid" });
+//     }
+//     const isMatch = await bcrypt.compare(password, user.password);
+//     if (!isMatch) {
+//       return res.status(401).json({ error: "Kredensial tidak valid" });
+//     }
+//     const payload = {
+//       user: { id: user.id, username: user.username, role: user.role },
+//     };
+//     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+//     res.json({ message: "Login berhasil", token: token });
+//   } catch (err) {
+//     next(err);
+//   }
+// });
 
-// === MOVIE ROUTES (Refactored for pg) ===
 app.get("/movies", async (req, res, next) => {
   const sql = `
     SELECT m.id, m.title, m.year, d.id AS director_id, d.name AS director_name
@@ -187,10 +185,8 @@ app.delete(
   }
 );
 
-// === DIRECTOR ROUTES (TUGAS PRAKTIKUM) ===
-// (Mahasiswa harus me-refactor endpoint /directors dengan pola yang sama)
 
-// === FALLBACK & ERROR HANDLING ===
+
 app.use((req, res) => {
   res.status(404).json({ error: "Rute tidak ditemukan" });
 });
